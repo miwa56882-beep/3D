@@ -12,7 +12,8 @@ const config = {
   floorGapExploded: 3.15,
   floorGapStacked: 1.28,
   slabThickness: 0.3,
-  initialCameraPosition: new THREE.Vector3(0, 20, 0),
+  topDownStabilityOffset: 0.0001,
+  initialCameraPosition: new THREE.Vector3(0, 20, 0.0001),
   overviewMarkerHeight: 1.95,
   overviewPadding: 1.28,
   focusTopPadding: 1.18,
@@ -610,7 +611,7 @@ function updateOverviewState() {
   overviewPosition.set(
     overviewCenter.x,
     overviewCenter.y + distance,
-    overviewCenter.z,
+    overviewCenter.z + config.topDownStabilityOffset,
   );
 }
 
@@ -667,7 +668,12 @@ function updateFocusCamera(delta) {
 
   camera.position.x = THREE.MathUtils.damp(camera.position.x, cameraTarget.x, 4.9, delta);
   camera.position.y = THREE.MathUtils.damp(camera.position.y, focusPositionY, 4.9, delta);
-  camera.position.z = THREE.MathUtils.damp(camera.position.z, cameraTarget.z, 4.9, delta);
+  camera.position.z = THREE.MathUtils.damp(
+    camera.position.z,
+    cameraTarget.z + config.topDownStabilityOffset,
+    4.9,
+    delta,
+  );
   sceneFocus.x = THREE.MathUtils.damp(sceneFocus.x, cameraTarget.x, 5.5, delta);
   sceneFocus.y = THREE.MathUtils.damp(sceneFocus.y, cameraTarget.y, 5.5, delta);
   sceneFocus.z = THREE.MathUtils.damp(sceneFocus.z, cameraTarget.z, 5.5, delta);

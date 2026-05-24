@@ -29335,7 +29335,8 @@ void main() {
     floorGapExploded: 3.15,
     floorGapStacked: 1.28,
     slabThickness: 0.3,
-    initialCameraPosition: new Vector3(0, 20, 0),
+    topDownStabilityOffset: 1e-4,
+    initialCameraPosition: new Vector3(0, 20, 1e-4),
     overviewMarkerHeight: 1.95,
     overviewPadding: 1.28,
     focusTopPadding: 1.18,
@@ -29849,7 +29850,7 @@ void main() {
     overviewPosition.set(
       overviewCenter.x,
       overviewCenter.y + distance,
-      overviewCenter.z
+      overviewCenter.z + config.topDownStabilityOffset
     );
   }
   function updateOverviewCamera(delta) {
@@ -29899,7 +29900,12 @@ void main() {
     const focusPositionY = cameraTarget.y + distance;
     camera.position.x = MathUtils.damp(camera.position.x, cameraTarget.x, 4.9, delta);
     camera.position.y = MathUtils.damp(camera.position.y, focusPositionY, 4.9, delta);
-    camera.position.z = MathUtils.damp(camera.position.z, cameraTarget.z, 4.9, delta);
+    camera.position.z = MathUtils.damp(
+      camera.position.z,
+      cameraTarget.z + config.topDownStabilityOffset,
+      4.9,
+      delta
+    );
     sceneFocus.x = MathUtils.damp(sceneFocus.x, cameraTarget.x, 5.5, delta);
     sceneFocus.y = MathUtils.damp(sceneFocus.y, cameraTarget.y, 5.5, delta);
     sceneFocus.z = MathUtils.damp(sceneFocus.z, cameraTarget.z, 5.5, delta);
