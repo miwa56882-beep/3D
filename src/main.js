@@ -27,7 +27,6 @@ const dom = {
   selectionHint: document.querySelector("#selectionHint"),
   topView: document.querySelector("#topView"),
   resetView: document.querySelector("#resetView"),
-  explodeToggle: document.querySelector("#explodeToggle"),
   pinsToggle: document.querySelector("#pinsToggle"),
   labelsToggle: document.querySelector("#labelsToggle"),
 };
@@ -394,10 +393,6 @@ function buildStaticUi() {
 function wireUi() {
   dom.topView.addEventListener("click", setTopView);
   dom.resetView.addEventListener("click", resetView);
-
-  dom.explodeToggle.addEventListener("change", (event) => {
-    state.exploded = event.currentTarget.checked;
-  });
 
   dom.pinsToggle.addEventListener("change", (event) => {
     state.showPins = event.currentTarget.checked;
