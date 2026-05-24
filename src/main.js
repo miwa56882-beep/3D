@@ -20,8 +20,8 @@ const config = {
 
 const dom = {
   canvasHost: document.querySelector("#canvasHost"),
+  currentFloorPanel: document.querySelector(".current-floor"),
   floorSummary: document.querySelector("#floorSummary"),
-  poiList: document.querySelector("#poiList"),
   legend: document.querySelector("#legend"),
   hoverCard: document.querySelector("#hoverCard"),
   selectionHint: document.querySelector("#selectionHint"),
@@ -44,7 +44,6 @@ const state = {
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#f4ebd9");
-scene.fog = new THREE.Fog("#f4ebd9", 17, 36);
 
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
 camera.position.copy(config.initialCameraPosition);
@@ -116,6 +115,7 @@ async function init() {
   } catch (error) {
     console.error(error);
     dom.selectionHint.textContent = "初期化に失敗しました";
+    dom.currentFloorPanel.hidden = false;
     dom.floorSummary.innerHTML =
       "<h3>読み込みエラー</h3><p>画像または Three.js の読み込みに失敗しました。ローカルサーバー経由で開いているか確認してください。</p>";
   }
@@ -442,7 +442,7 @@ function updateSidebar() {
   const floor = getFloorById(state.selectedFloorId);
   const activePoi = state.selectedPoiKey ? poiLookup.get(state.selectedPoiKey) : null;
 
-  dom.floorSummary.hidden = !activePoi;
+  dom.currentFloorPanel.hidden = !activePoi;
   dom.floorSummary.innerHTML = activePoi
     ? `
       <span class="summary-pill">${floor.label}</span>
@@ -450,30 +450,6 @@ function updateSidebar() {
       <p>${activePoi.point.detail}</p>
     `
     : "";
-
-  dom.poiList.innerHTML = "";
-  floor.points.forEach((point) => {
-    const category = CATEGORY_META[point.category];
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "poi-item";
-    item.classList.toggle(
-      "is-active",
-      buildPoiKey(floor.id, point.id) === state.selectedPoiKey,
-    );
-    item.innerHTML = `
-      <div class="poi-meta">
-        <span class="tag" style="--tag-color: ${category.color}">${category.label}</span>
-        <strong>${floor.label}</strong>
-      </div>
-      <h3>${point.label}</h3>
-      <p>${point.summary ?? point.detail}</p>
-    `;
-    item.addEventListener("click", () => {
-      focusPoi(floor.id, point.id);
-    });
-    dom.poiList.append(item);
-  });
 
   dom.selectionHint.textContent = activePoi
     ? `${floor.label} / ${activePoi.point.label}`

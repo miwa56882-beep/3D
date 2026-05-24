@@ -101,13 +101,6 @@ body {
   line-height: 1.05;
 }
 
-.hero-copy {
-  margin: 0.85rem 0 0;
-  line-height: 1.75;
-  color: var(--ink-soft);
-  font-size: 0.97rem;
-}
-
 .panel-section {
   position: relative;
   margin-bottom: 1rem;
@@ -591,10 +584,6 @@ body {
         <header class="hero">
           <p class="eyebrow">Cultural Festival / 3D Campus Guide</p>
           <h1>文化祭 校内案内図</h1>
-          <p class="hero-copy">
-            提供された平面図をもとに、各階を立体的に積層した案内サイトです。
-            WebGL を使って自由に回転・拡大しながら、見たいフロアや企画場所を確認できます。
-          </p>
         </header>
 
         <section class="panel-section" aria-labelledby="view-heading">
@@ -635,10 +624,8 @@ body {
           </div>
         </section>
 
-        <section class="panel-section current-floor" aria-labelledby="current-heading">
-          <h2 id="current-heading">選択した場所</h2>
+        <section class="panel-section current-floor" hidden>
           <div id="floorSummary" class="summary-card"></div>
-          <div id="poiList" class="poi-list" role="list"></div>
         </section>
 
         <section class="panel-section legend-section" aria-labelledby="legend-heading">
@@ -13127,45 +13114,6 @@ body {
         hand.add(joint);
       }
       return hand.joints[inputjoint.jointName];
-    }
-  };
-  var Fog = class _Fog {
-    /**
-     * Constructs a new fog.
-     *
-     * @param {number|Color} color - The fog's color.
-     * @param {number} [near=1] - The minimum distance to start applying fog.
-     * @param {number} [far=1000] - The maximum distance at which fog stops being calculated and applied.
-     */
-    constructor(color, near = 1, far = 1e3) {
-      this.isFog = true;
-      this.name = "";
-      this.color = new Color(color);
-      this.near = near;
-      this.far = far;
-    }
-    /**
-     * Returns a new fog with copied values from this instance.
-     *
-     * @return {Fog} A clone of this instance.
-     */
-    clone() {
-      return new _Fog(this.color, this.near, this.far);
-    }
-    /**
-     * Serializes the fog into JSON.
-     *
-     * @param {?(Object|string)} meta - An optional value holding meta information about the serialization.
-     * @return {Object} A JSON object representing the serialized fog
-     */
-    toJSON() {
-      return {
-        type: "Fog",
-        name: this.name,
-        color: this.color.getHex(),
-        near: this.near,
-        far: this.far
-      };
     }
   };
   var Scene = class extends Object3D {
@@ -29400,8 +29348,8 @@ void main() {
   };
   var dom = {
     canvasHost: document.querySelector("#canvasHost"),
+    currentFloorPanel: document.querySelector(".current-floor"),
     floorSummary: document.querySelector("#floorSummary"),
-    poiList: document.querySelector("#poiList"),
     legend: document.querySelector("#legend"),
     hoverCard: document.querySelector("#hoverCard"),
     selectionHint: document.querySelector("#selectionHint"),
@@ -29422,7 +29370,6 @@ void main() {
   };
   var scene = new Scene();
   scene.background = new Color("#f4ebd9");
-  scene.fog = new Fog("#f4ebd9", 17, 36);
   var camera = new PerspectiveCamera(42, 1, 0.1, 100);
   camera.position.copy(config.initialCameraPosition);
   var renderer = new WebGLRenderer({ antialias: true, alpha: true });
@@ -29484,6 +29431,7 @@ void main() {
     } catch (error) {
       console.error(error);
       dom.selectionHint.textContent = "\u521D\u671F\u5316\u306B\u5931\u6557\u3057\u307E\u3057\u305F";
+      dom.currentFloorPanel.hidden = false;
       dom.floorSummary.innerHTML = "<h3>\u8AAD\u307F\u8FBC\u307F\u30A8\u30E9\u30FC</h3><p>\u753B\u50CF\u307E\u305F\u306F Three.js \u306E\u8AAD\u307F\u8FBC\u307F\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30ED\u30FC\u30AB\u30EB\u30B5\u30FC\u30D0\u30FC\u7D4C\u7531\u3067\u958B\u3044\u3066\u3044\u308B\u304B\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002</p>";
     }
   }
@@ -29772,35 +29720,12 @@ void main() {
   function updateSidebar() {
     const floor = getFloorById(state.selectedFloorId);
     const activePoi = state.selectedPoiKey ? poiLookup.get(state.selectedPoiKey) : null;
-    dom.floorSummary.hidden = !activePoi;
+    dom.currentFloorPanel.hidden = !activePoi;
     dom.floorSummary.innerHTML = activePoi ? `
       <span class="summary-pill">${floor.label}</span>
       <h3>${activePoi.point.label}</h3>
       <p>${activePoi.point.detail}</p>
     ` : "";
-    dom.poiList.innerHTML = "";
-    floor.points.forEach((point) => {
-      const category = CATEGORY_META[point.category];
-      const item = document.createElement("button");
-      item.type = "button";
-      item.className = "poi-item";
-      item.classList.toggle(
-        "is-active",
-        buildPoiKey(floor.id, point.id) === state.selectedPoiKey
-      );
-      item.innerHTML = `
-      <div class="poi-meta">
-        <span class="tag" style="--tag-color: ${category.color}">${category.label}</span>
-        <strong>${floor.label}</strong>
-      </div>
-      <h3>${point.label}</h3>
-      <p>${point.summary ?? point.detail}</p>
-    `;
-      item.addEventListener("click", () => {
-        focusPoi(floor.id, point.id);
-      });
-      dom.poiList.append(item);
-    });
     dom.selectionHint.textContent = activePoi ? `${floor.label} / ${activePoi.point.label}` : `${floor.label} \u3092\u8868\u793A\u4E2D`;
   }
   function focusFloor(floorId) {

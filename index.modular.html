@@ -16,10 +16,6 @@
         <header class="hero">
           <p class="eyebrow">Cultural Festival / 3D Campus Guide</p>
           <h1>文化祭 校内案内図</h1>
-          <p class="hero-copy">
-            提供された平面図をもとに、各階を立体的に積層した案内サイトです。
-            WebGL を使って自由に回転・拡大しながら、見たいフロアや企画場所を確認できます。
-          </p>
         </header>
 
         <section class="panel-section" aria-labelledby="view-heading">
@@ -60,10 +56,8 @@
           </div>
         </section>
 
-        <section class="panel-section current-floor" aria-labelledby="current-heading">
-          <h2 id="current-heading">選択した場所</h2>
+        <section class="panel-section current-floor" hidden>
           <div id="floorSummary" class="summary-card"></div>
-          <div id="poiList" class="poi-list" role="list"></div>
         </section>
 
         <section class="panel-section legend-section" aria-labelledby="legend-heading">
