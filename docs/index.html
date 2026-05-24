@@ -606,9 +606,6 @@ body {
 
         <section class="panel-section" aria-label="視点操作">
           <div class="section-actions">
-            <button id="topView" type="button" class="ghost-button">
-              真上から見る
-            </button>
             <button id="resetView" type="button" class="ghost-button">
               視点を戻す
             </button>
@@ -29351,7 +29348,6 @@ void main() {
     legend: document.querySelector("#legend"),
     hoverCard: document.querySelector("#hoverCard"),
     selectionHint: document.querySelector("#selectionHint"),
-    topView: document.querySelector("#topView"),
     resetView: document.querySelector("#resetView"),
     pinsToggle: document.querySelector("#pinsToggle")
   };
@@ -29362,7 +29358,7 @@ void main() {
     exploded: true,
     showPins: true,
     showLabels: true,
-    cameraMode: "overview"
+    cameraMode: "focus"
   };
   var scene = new Scene();
   scene.background = new Color("#f4ebd9");
@@ -29689,7 +29685,6 @@ void main() {
     });
   }
   function wireUi() {
-    dom.topView.addEventListener("click", setTopView);
     dom.resetView.addEventListener("click", resetView);
     dom.pinsToggle.addEventListener("change", (event) => {
       state.showPins = event.currentTarget.checked;
@@ -29736,8 +29731,8 @@ void main() {
   function focusFloor(floorId) {
     state.selectedFloorId = floorId;
     state.selectedPoiKey = null;
-    state.cameraMode = "overview";
     updateSidebar();
+    resetView();
   }
   function focusPoi(floorId, poiId) {
     state.selectedFloorId = floorId;
@@ -29746,15 +29741,6 @@ void main() {
     updateSidebar();
   }
   function resetView() {
-    state.cameraMode = "overview";
-    updateOverviewState();
-    camera.position.copy(overviewPosition);
-    controls.target.copy(overviewCenter);
-    sceneFocus.copy(overviewCenter);
-    cameraTarget.copy(overviewCenter);
-    controls.update();
-  }
-  function setTopView() {
     state.cameraMode = "focus";
     const activeFloor = floorInstances.find(
       (instance) => instance.floor.id === state.selectedFloorId
@@ -29834,40 +29820,10 @@ void main() {
         );
       });
     });
-    if (state.cameraMode === "overview") {
-      updateOverviewCamera(delta);
-    } else {
-      updateFocusTarget(delta);
-    }
+    updateFocusTarget(delta);
     controls.update();
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
-  }
-  function updateOverviewCamera(delta) {
-    updateOverviewState();
-    camera.position.x = MathUtils.damp(
-      camera.position.x,
-      overviewPosition.x,
-      4.6,
-      delta
-    );
-    camera.position.y = MathUtils.damp(
-      camera.position.y,
-      overviewPosition.y,
-      4.6,
-      delta
-    );
-    camera.position.z = MathUtils.damp(
-      camera.position.z,
-      overviewPosition.z,
-      4.6,
-      delta
-    );
-    sceneFocus.x = MathUtils.damp(sceneFocus.x, overviewCenter.x, 4.6, delta);
-    sceneFocus.y = MathUtils.damp(sceneFocus.y, overviewCenter.y, 4.6, delta);
-    sceneFocus.z = MathUtils.damp(sceneFocus.z, overviewCenter.z, 4.6, delta);
-    cameraTarget.copy(overviewCenter);
-    controls.target.copy(sceneFocus);
   }
   function updateFocusTarget(delta) {
     if (state.selectedPoiKey) {
@@ -29884,50 +29840,6 @@ void main() {
     sceneFocus.y = MathUtils.damp(sceneFocus.y, cameraTarget.y, 5.5, delta);
     sceneFocus.z = MathUtils.damp(sceneFocus.z, cameraTarget.z, 5.5, delta);
     controls.target.copy(sceneFocus);
-  }
-  function updateOverviewState() {
-    if (floorInstances.length === 0) {
-      overviewCenter.set(0, 1.5, 0);
-      overviewPosition.copy(config.initialCameraPosition);
-      return;
-    }
-    const visibleFloorInstances = floorInstances.filter(
-      (instance) => instance.floor.id === state.selectedFloorId
-    );
-    const targetInstances = visibleFloorInstances.length > 0 ? visibleFloorInstances : floorInstances;
-    overviewBounds.makeEmpty();
-    targetInstances.forEach((instance) => {
-      const halfWidth = instance.width / 2;
-      const halfDepth = instance.depth / 2;
-      const floorY = instance.group.position.y;
-      overviewBounds.expandByPoint(
-        tempPoint.set(
-          instance.group.position.x - halfWidth,
-          floorY - config.slabThickness / 2,
-          instance.group.position.z - halfDepth
-        )
-      );
-      overviewBounds.expandByPoint(
-        tempPoint.set(
-          instance.group.position.x + halfWidth,
-          floorY + config.slabThickness / 2 + config.overviewMarkerHeight,
-          instance.group.position.z + halfDepth
-        )
-      );
-    });
-    overviewBounds.getCenter(overviewCenter);
-    overviewBounds.getSize(overviewSize);
-    const halfVerticalFov = MathUtils.degToRad(camera.fov * 0.5);
-    const halfHorizontalFov = Math.atan(
-      Math.tan(halfVerticalFov) * camera.aspect
-    );
-    const fitHalfAngle = Math.min(halfVerticalFov, halfHorizontalFov);
-    const radius = overviewSize.length() * 0.5;
-    const distance = Math.max(radius / Math.sin(fitHalfAngle), controls.minDistance) * config.overviewPadding;
-    overviewPosition.copy(overviewCenter).addScaledVector(
-      overviewDirection,
-      distance
-    );
   }
   function handlePointerMove(event) {
     const hovered = pickInteractive(event);

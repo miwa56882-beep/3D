@@ -26,7 +26,6 @@ const dom = {
   legend: document.querySelector("#legend"),
   hoverCard: document.querySelector("#hoverCard"),
   selectionHint: document.querySelector("#selectionHint"),
-  topView: document.querySelector("#topView"),
   resetView: document.querySelector("#resetView"),
   pinsToggle: document.querySelector("#pinsToggle"),
 };
@@ -38,7 +37,7 @@ const state = {
   exploded: true,
   showPins: true,
   showLabels: true,
-  cameraMode: "overview",
+  cameraMode: "focus",
 };
 
 const scene = new THREE.Scene();
@@ -404,7 +403,6 @@ function buildStaticUi() {
 }
 
 function wireUi() {
-  dom.topView.addEventListener("click", setTopView);
   dom.resetView.addEventListener("click", resetView);
 
   dom.pinsToggle.addEventListener("change", (event) => {
@@ -467,8 +465,8 @@ function updateSidebar() {
 function focusFloor(floorId) {
   state.selectedFloorId = floorId;
   state.selectedPoiKey = null;
-  state.cameraMode = "overview";
   updateSidebar();
+  resetView();
 }
 
 function focusPoi(floorId, poiId) {
@@ -479,16 +477,6 @@ function focusPoi(floorId, poiId) {
 }
 
 function resetView() {
-  state.cameraMode = "overview";
-  updateOverviewState();
-  camera.position.copy(overviewPosition);
-  controls.target.copy(overviewCenter);
-  sceneFocus.copy(overviewCenter);
-  cameraTarget.copy(overviewCenter);
-  controls.update();
-}
-
-function setTopView() {
   state.cameraMode = "focus";
   const activeFloor = floorInstances.find(
     (instance) => instance.floor.id === state.selectedFloorId,
@@ -581,41 +569,10 @@ function animate(time) {
     });
   });
 
-  if (state.cameraMode === "overview") {
-    updateOverviewCamera(delta);
-  } else {
-    updateFocusTarget(delta);
-  }
+  updateFocusTarget(delta);
   controls.update();
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
-}
-
-function updateOverviewCamera(delta) {
-  updateOverviewState();
-  camera.position.x = THREE.MathUtils.damp(
-    camera.position.x,
-    overviewPosition.x,
-    4.6,
-    delta,
-  );
-  camera.position.y = THREE.MathUtils.damp(
-    camera.position.y,
-    overviewPosition.y,
-    4.6,
-    delta,
-  );
-  camera.position.z = THREE.MathUtils.damp(
-    camera.position.z,
-    overviewPosition.z,
-    4.6,
-    delta,
-  );
-  sceneFocus.x = THREE.MathUtils.damp(sceneFocus.x, overviewCenter.x, 4.6, delta);
-  sceneFocus.y = THREE.MathUtils.damp(sceneFocus.y, overviewCenter.y, 4.6, delta);
-  sceneFocus.z = THREE.MathUtils.damp(sceneFocus.z, overviewCenter.z, 4.6, delta);
-  cameraTarget.copy(overviewCenter);
-  controls.target.copy(sceneFocus);
 }
 
 function updateFocusTarget(delta) {
