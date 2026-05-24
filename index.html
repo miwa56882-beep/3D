@@ -570,11 +570,7 @@ body {
           <div class="toggle-grid">
             <label class="toggle-card">
               <input id="pinsToggle" type="checkbox" checked />
-              <span>案内ピンを表示</span>
-            </label>
-            <label class="toggle-card">
-              <input id="labelsToggle" type="checkbox" checked />
-              <span>ラベルを表示</span>
+              <span>案内ピン</span>
             </label>
           </div>
         </section>
@@ -29307,8 +29303,7 @@ void main() {
     selectionHint: document.querySelector("#selectionHint"),
     topView: document.querySelector("#topView"),
     resetView: document.querySelector("#resetView"),
-    pinsToggle: document.querySelector("#pinsToggle"),
-    labelsToggle: document.querySelector("#labelsToggle")
+    pinsToggle: document.querySelector("#pinsToggle")
   };
   var state = {
     selectedFloorId: FLOOR_DATA[0].id,
@@ -29636,9 +29631,6 @@ void main() {
     dom.resetView.addEventListener("click", resetView);
     dom.pinsToggle.addEventListener("change", (event) => {
       state.showPins = event.currentTarget.checked;
-    });
-    dom.labelsToggle.addEventListener("change", (event) => {
-      state.showLabels = event.currentTarget.checked;
     });
     renderer.domElement.addEventListener("pointermove", (event) => {
       handlePointerMove(event);

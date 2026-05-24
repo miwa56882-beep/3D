@@ -28,7 +28,6 @@ const dom = {
   topView: document.querySelector("#topView"),
   resetView: document.querySelector("#resetView"),
   pinsToggle: document.querySelector("#pinsToggle"),
-  labelsToggle: document.querySelector("#labelsToggle"),
 };
 
 const state = {
@@ -396,10 +395,6 @@ function wireUi() {
 
   dom.pinsToggle.addEventListener("change", (event) => {
     state.showPins = event.currentTarget.checked;
-  });
-
-  dom.labelsToggle.addEventListener("change", (event) => {
-    state.showLabels = event.currentTarget.checked;
   });
 
   renderer.domElement.addEventListener("pointermove", (event) => {
