@@ -626,6 +626,17 @@ function updateOverviewCamera(delta) {
   controls.target.copy(sceneFocus);
 }
 
+function getTopDownDistance(spanX, spanZ, padding = 1) {
+  const baseDistance = Math.max(spanX, spanZ, 12);
+  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+  const safeAspect = Math.max(camera.aspect, 0.1);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * safeAspect);
+  const fitDepthDistance = spanZ / (2 * Math.tan(verticalFov / 2));
+  const fitWidthDistance = spanX / (2 * Math.tan(horizontalFov / 2));
+
+  return Math.max(baseDistance, fitDepthDistance, fitWidthDistance) * padding;
+}
+
 function updateFocusCamera(delta) {
   const activeFloor = floorInstances.find(
     (instance) => instance.floor.id === state.selectedFloorId,
@@ -647,7 +658,11 @@ function updateFocusCamera(delta) {
     );
   }
 
-  const distance = Math.max(activeFloor.width, activeFloor.depth, 12) * config.focusTopPadding;
+  const distance = getTopDownDistance(
+    activeFloor.width,
+    activeFloor.depth,
+    config.focusTopPadding,
+  );
   const focusPositionY = cameraTarget.y + distance;
 
   camera.position.x = THREE.MathUtils.damp(camera.position.x, cameraTarget.x, 4.9, delta);
