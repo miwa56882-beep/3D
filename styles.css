@@ -295,13 +295,6 @@ body {
   color: var(--ink-soft);
 }
 
-.panel-footer {
-  padding: 0 0.4rem 2rem;
-  line-height: 1.6;
-  color: rgba(29, 26, 23, 0.66);
-  font-size: 0.84rem;
-}
-
 .scene-panel {
   position: relative;
   overflow: hidden;
