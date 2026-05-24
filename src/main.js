@@ -12,7 +12,7 @@ const config = {
   floorGapExploded: 3.15,
   floorGapStacked: 1.28,
   slabThickness: 0.3,
-  initialCameraPosition: new THREE.Vector3(0.01, 20, 0.01),
+  initialCameraPosition: new THREE.Vector3(0, 20, 0),
   overviewMarkerHeight: 1.95,
   overviewPadding: 1.28,
   focusTopPadding: 1.18,
@@ -62,7 +62,7 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.minDistance = 7;
 controls.maxDistance = 64;
-controls.minPolarAngle = THREE.MathUtils.degToRad(0.1);
+controls.minPolarAngle = 0;
 controls.maxPolarAngle = THREE.MathUtils.degToRad(86);
 controls.target.set(0, 1.5, 0);
 
@@ -608,9 +608,9 @@ function updateOverviewState() {
     overviewSize.y * 0.35;
 
   overviewPosition.set(
-    overviewCenter.x + 0.01,
+    overviewCenter.x,
     overviewCenter.y + distance,
-    overviewCenter.z + 0.01,
+    overviewCenter.z,
   );
 }
 
@@ -650,9 +650,9 @@ function updateFocusCamera(delta) {
   const distance = Math.max(activeFloor.width, activeFloor.depth, 12) * config.focusTopPadding;
   const focusPositionY = cameraTarget.y + distance;
 
-  camera.position.x = THREE.MathUtils.damp(camera.position.x, cameraTarget.x + 0.01, 4.9, delta);
+  camera.position.x = THREE.MathUtils.damp(camera.position.x, cameraTarget.x, 4.9, delta);
   camera.position.y = THREE.MathUtils.damp(camera.position.y, focusPositionY, 4.9, delta);
-  camera.position.z = THREE.MathUtils.damp(camera.position.z, cameraTarget.z + 0.01, 4.9, delta);
+  camera.position.z = THREE.MathUtils.damp(camera.position.z, cameraTarget.z, 4.9, delta);
   sceneFocus.x = THREE.MathUtils.damp(sceneFocus.x, cameraTarget.x, 5.5, delta);
   sceneFocus.y = THREE.MathUtils.damp(sceneFocus.y, cameraTarget.y, 5.5, delta);
   sceneFocus.z = THREE.MathUtils.damp(sceneFocus.z, cameraTarget.z, 5.5, delta);

@@ -29335,7 +29335,7 @@ void main() {
     floorGapExploded: 3.15,
     floorGapStacked: 1.28,
     slabThickness: 0.3,
-    initialCameraPosition: new Vector3(0.01, 20, 0.01),
+    initialCameraPosition: new Vector3(0, 20, 0),
     overviewMarkerHeight: 1.95,
     overviewPadding: 1.28,
     focusTopPadding: 1.18,
@@ -29378,7 +29378,7 @@ void main() {
   controls.dampingFactor = 0.08;
   controls.minDistance = 7;
   controls.maxDistance = 64;
-  controls.minPolarAngle = MathUtils.degToRad(0.1);
+  controls.minPolarAngle = 0;
   controls.maxPolarAngle = MathUtils.degToRad(86);
   controls.target.set(0, 1.5, 0);
   var raycaster = new Raycaster();
@@ -29847,9 +29847,9 @@ void main() {
     overviewBounds.getSize(overviewSize);
     const distance = Math.max(overviewSize.x, overviewSize.z, 12) * config.overviewPadding + overviewSize.y * 0.35;
     overviewPosition.set(
-      overviewCenter.x + 0.01,
+      overviewCenter.x,
       overviewCenter.y + distance,
-      overviewCenter.z + 0.01
+      overviewCenter.z
     );
   }
   function updateOverviewCamera(delta) {
@@ -29884,9 +29884,9 @@ void main() {
     }
     const distance = Math.max(activeFloor.width, activeFloor.depth, 12) * config.focusTopPadding;
     const focusPositionY = cameraTarget.y + distance;
-    camera.position.x = MathUtils.damp(camera.position.x, cameraTarget.x + 0.01, 4.9, delta);
+    camera.position.x = MathUtils.damp(camera.position.x, cameraTarget.x, 4.9, delta);
     camera.position.y = MathUtils.damp(camera.position.y, focusPositionY, 4.9, delta);
-    camera.position.z = MathUtils.damp(camera.position.z, cameraTarget.z + 0.01, 4.9, delta);
+    camera.position.z = MathUtils.damp(camera.position.z, cameraTarget.z, 4.9, delta);
     sceneFocus.x = MathUtils.damp(sceneFocus.x, cameraTarget.x, 5.5, delta);
     sceneFocus.y = MathUtils.damp(sceneFocus.y, cameraTarget.y, 5.5, delta);
     sceneFocus.z = MathUtils.damp(sceneFocus.z, cameraTarget.z, 5.5, delta);
