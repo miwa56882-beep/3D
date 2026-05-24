@@ -31,7 +31,6 @@ function guideDetail({ group, classification, title, room, page, note }) {
     classification ? `分類: ${classification}` : null,
     title ? `企画: ${title}` : null,
     room ? `場所: ${room}` : null,
-    page ? `パンフレット: ${page}` : null,
     note ? `補足: ${note}` : null,
   ]
     .filter(Boolean)
