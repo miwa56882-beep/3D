@@ -108,6 +108,47 @@ body {
   text-transform: uppercase;
 }
 
+.floor-switcher {
+  padding: 0.85rem;
+}
+
+.floor-button-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.floor-button {
+  border: 1px solid rgba(29, 26, 23, 0.14);
+  border-radius: 0.95rem;
+  padding: 0.75rem 0.5rem;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.floor-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(29, 26, 23, 0.22);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.floor-button.is-active {
+  border-color: rgba(29, 26, 23, 0.82);
+  background: rgba(29, 26, 23, 0.9);
+  color: #fff7ef;
+  box-shadow: 0 14px 24px rgba(18, 16, 12, 0.12);
+}
+
 .section-actions {
   display: flex;
   flex-wrap: wrap;
@@ -508,6 +549,10 @@ body {
 @media (max-width: 720px) {
   .info-panel {
     padding: 1rem;
+  }
+
+  .floor-button-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .scene-toolbar {

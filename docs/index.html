@@ -118,6 +118,47 @@ body {
   text-transform: uppercase;
 }
 
+.floor-switcher {
+  padding: 0.85rem;
+}
+
+.floor-button-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.floor-button {
+  border: 1px solid rgba(29, 26, 23, 0.14);
+  border-radius: 0.95rem;
+  padding: 0.75rem 0.5rem;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.floor-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(29, 26, 23, 0.22);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.floor-button.is-active {
+  border-color: rgba(29, 26, 23, 0.82);
+  background: rgba(29, 26, 23, 0.9);
+  color: #fff7ef;
+  box-shadow: 0 14px 24px rgba(18, 16, 12, 0.12);
+}
+
 .section-actions {
   display: flex;
   flex-wrap: wrap;
@@ -520,6 +561,10 @@ body {
     padding: 1rem;
   }
 
+  .floor-button-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .scene-toolbar {
     left: 0.8rem;
     right: 0.8rem;
@@ -554,6 +599,10 @@ body {
           <p class="eyebrow">Cultural Festival / 3D Campus Guide</p>
           <h1>文化祭 校内案内図</h1>
         </header>
+
+        <section class="panel-section floor-switcher" aria-label="階選択">
+          <div id="floorButtons" class="floor-button-row" role="group" aria-label="階選択"></div>
+        </section>
 
         <section class="panel-section" aria-label="視点操作">
           <div class="section-actions">
@@ -29298,6 +29347,7 @@ void main() {
     canvasHost: document.querySelector("#canvasHost"),
     currentFloorPanel: document.querySelector(".current-floor"),
     floorSummary: document.querySelector("#floorSummary"),
+    floorButtons: document.querySelector("#floorButtons"),
     legend: document.querySelector("#legend"),
     hoverCard: document.querySelector("#hoverCard"),
     selectionHint: document.querySelector("#selectionHint"),
@@ -29617,6 +29667,18 @@ void main() {
     };
   }
   function buildStaticUi() {
+    dom.floorButtons.innerHTML = "";
+    FLOOR_DATA.forEach((floor) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "floor-button";
+      button.dataset.floorId = floor.id;
+      button.textContent = floor.label;
+      button.addEventListener("click", () => {
+        focusFloor(floor.id);
+      });
+      dom.floorButtons.append(button);
+    });
     dom.legend.innerHTML = "";
     Object.values(CATEGORY_META).forEach((category) => {
       const tag = document.createElement("span");
@@ -29660,6 +29722,9 @@ void main() {
   function updateSidebar() {
     const floor = getFloorById(state.selectedFloorId);
     const activePoi = state.selectedPoiKey ? poiLookup.get(state.selectedPoiKey) : null;
+    dom.floorButtons.querySelectorAll(".floor-button").forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.floorId === state.selectedFloorId);
+    });
     dom.currentFloorPanel.hidden = !activePoi;
     dom.floorSummary.innerHTML = activePoi ? `
       <span class="summary-pill">${floor.label}</span>
@@ -29671,7 +29736,7 @@ void main() {
   function focusFloor(floorId) {
     state.selectedFloorId = floorId;
     state.selectedPoiKey = null;
-    state.cameraMode = "focus";
+    state.cameraMode = "overview";
     updateSidebar();
   }
   function focusPoi(floorId, poiId) {
@@ -29717,9 +29782,6 @@ void main() {
   function animate(time) {
     const delta = Math.min(clock.getDelta(), 0.05);
     const elapsed = clock.elapsedTime;
-    const selectedFloorIndex = FLOOR_DATA.findIndex(
-      (floor) => floor.id === state.selectedFloorId
-    );
     const hoveredPoiKey = state.hoveredInteractive?.userData.kind === "poi" ? buildPoiKey(
       state.hoveredInteractive.userData.floorId,
       state.hoveredInteractive.userData.poiId
@@ -29733,21 +29795,24 @@ void main() {
         delta
       );
       const isActiveFloor = state.selectedFloorId === instance.floor.id;
-      const isAboveSelectedFloor = instance.index > selectedFloorIndex;
-      const emphasisTarget = isActiveFloor ? 1 : state.exploded ? 0.76 : 0.58;
+      instance.group.visible = isActiveFloor;
+      if (!isActiveFloor) {
+        return;
+      }
+      const emphasisTarget = 1;
       instance.emphasis = MathUtils.damp(instance.emphasis, emphasisTarget, 7.5, delta);
-      instance.materials.top.opacity = isAboveSelectedFloor ? 0.12 : 0.48 + instance.emphasis * 0.52;
-      instance.materials.side.opacity = isAboveSelectedFloor ? 0.1 : 0.52 + instance.emphasis * 0.44;
-      instance.materials.bottom.opacity = isAboveSelectedFloor ? 0.08 : 0.44 + instance.emphasis * 0.32;
-      instance.edge.material.opacity = isAboveSelectedFloor ? 0.06 : 0.16 + instance.emphasis * 0.24;
-      instance.glow.material.opacity = isAboveSelectedFloor ? 0.02 : 0.04 + instance.emphasis * 0.12;
-      instance.label.visible = state.showLabels && !isAboveSelectedFloor;
-      instance.labelElement.classList.toggle("is-muted", !isActiveFloor);
+      instance.materials.top.opacity = 0.48 + instance.emphasis * 0.52;
+      instance.materials.side.opacity = 0.52 + instance.emphasis * 0.44;
+      instance.materials.bottom.opacity = 0.44 + instance.emphasis * 0.32;
+      instance.edge.material.opacity = 0.16 + instance.emphasis * 0.24;
+      instance.glow.material.opacity = 0.04 + instance.emphasis * 0.12;
+      instance.label.visible = state.showLabels;
+      instance.labelElement.classList.remove("is-muted");
       instance.pois.forEach((poi, poiIndex) => {
         const key = buildPoiKey(instance.floor.id, poi.point.id);
         const isSelected = state.selectedPoiKey === key;
         const isHovered = hoveredPoiKey === key;
-        const isAreaVisible = !isAboveSelectedFloor && (state.exploded || isActiveFloor || isSelected);
+        const isAreaVisible = true;
         const areMarkersVisible = state.showPins && isAreaVisible;
         const bob = Math.sin(elapsed * 2.3 + poiIndex * 0.8) * 0.05;
         poi.group.visible = isAreaVisible;
@@ -29826,8 +29891,12 @@ void main() {
       overviewPosition.copy(config.initialCameraPosition);
       return;
     }
+    const visibleFloorInstances = floorInstances.filter(
+      (instance) => instance.floor.id === state.selectedFloorId
+    );
+    const targetInstances = visibleFloorInstances.length > 0 ? visibleFloorInstances : floorInstances;
     overviewBounds.makeEmpty();
-    floorInstances.forEach((instance) => {
+    targetInstances.forEach((instance) => {
       const halfWidth = instance.width / 2;
       const halfDepth = instance.depth / 2;
       const floorY = instance.group.position.y;

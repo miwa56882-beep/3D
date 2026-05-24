@@ -22,6 +22,7 @@ const dom = {
   canvasHost: document.querySelector("#canvasHost"),
   currentFloorPanel: document.querySelector(".current-floor"),
   floorSummary: document.querySelector("#floorSummary"),
+  floorButtons: document.querySelector("#floorButtons"),
   legend: document.querySelector("#legend"),
   hoverCard: document.querySelector("#hoverCard"),
   selectionHint: document.querySelector("#selectionHint"),
@@ -379,6 +380,19 @@ function createFloorGroup(floor, texture, index) {
 }
 
 function buildStaticUi() {
+  dom.floorButtons.innerHTML = "";
+  FLOOR_DATA.forEach((floor) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "floor-button";
+    button.dataset.floorId = floor.id;
+    button.textContent = floor.label;
+    button.addEventListener("click", () => {
+      focusFloor(floor.id);
+    });
+    dom.floorButtons.append(button);
+  });
+
   dom.legend.innerHTML = "";
   Object.values(CATEGORY_META).forEach((category) => {
     const tag = document.createElement("span");
@@ -432,6 +446,10 @@ function updateSidebar() {
   const floor = getFloorById(state.selectedFloorId);
   const activePoi = state.selectedPoiKey ? poiLookup.get(state.selectedPoiKey) : null;
 
+  dom.floorButtons.querySelectorAll(".floor-button").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.floorId === state.selectedFloorId);
+  });
+
   dom.currentFloorPanel.hidden = !activePoi;
   dom.floorSummary.innerHTML = activePoi
     ? `
@@ -449,7 +467,7 @@ function updateSidebar() {
 function focusFloor(floorId) {
   state.selectedFloorId = floorId;
   state.selectedPoiKey = null;
-  state.cameraMode = "focus";
+  state.cameraMode = "overview";
   updateSidebar();
 }
 
@@ -501,9 +519,6 @@ function setTopView() {
 function animate(time) {
   const delta = Math.min(clock.getDelta(), 0.05);
   const elapsed = clock.elapsedTime;
-  const selectedFloorIndex = FLOOR_DATA.findIndex(
-    (floor) => floor.id === state.selectedFloorId,
-  );
   const hoveredPoiKey =
     state.hoveredInteractive?.userData.kind === "poi"
       ? buildPoiKey(
@@ -522,34 +537,27 @@ function animate(time) {
     );
 
     const isActiveFloor = state.selectedFloorId === instance.floor.id;
-    const isAboveSelectedFloor = instance.index > selectedFloorIndex;
-    const emphasisTarget = isActiveFloor ? 1 : state.exploded ? 0.76 : 0.58;
+    instance.group.visible = isActiveFloor;
+    if (!isActiveFloor) {
+      return;
+    }
+
+    const emphasisTarget = 1;
     instance.emphasis = THREE.MathUtils.damp(instance.emphasis, emphasisTarget, 7.5, delta);
 
-    instance.materials.top.opacity = isAboveSelectedFloor
-      ? 0.12
-      : 0.48 + instance.emphasis * 0.52;
-    instance.materials.side.opacity = isAboveSelectedFloor
-      ? 0.1
-      : 0.52 + instance.emphasis * 0.44;
-    instance.materials.bottom.opacity = isAboveSelectedFloor
-      ? 0.08
-      : 0.44 + instance.emphasis * 0.32;
-    instance.edge.material.opacity = isAboveSelectedFloor
-      ? 0.06
-      : 0.16 + instance.emphasis * 0.24;
-    instance.glow.material.opacity = isAboveSelectedFloor
-      ? 0.02
-      : 0.04 + instance.emphasis * 0.12;
-    instance.label.visible = state.showLabels && !isAboveSelectedFloor;
-    instance.labelElement.classList.toggle("is-muted", !isActiveFloor);
+    instance.materials.top.opacity = 0.48 + instance.emphasis * 0.52;
+    instance.materials.side.opacity = 0.52 + instance.emphasis * 0.44;
+    instance.materials.bottom.opacity = 0.44 + instance.emphasis * 0.32;
+    instance.edge.material.opacity = 0.16 + instance.emphasis * 0.24;
+    instance.glow.material.opacity = 0.04 + instance.emphasis * 0.12;
+    instance.label.visible = state.showLabels;
+    instance.labelElement.classList.remove("is-muted");
 
     instance.pois.forEach((poi, poiIndex) => {
       const key = buildPoiKey(instance.floor.id, poi.point.id);
       const isSelected = state.selectedPoiKey === key;
       const isHovered = hoveredPoiKey === key;
-      const isAreaVisible =
-        !isAboveSelectedFloor && (state.exploded || isActiveFloor || isSelected);
+      const isAreaVisible = true;
       const areMarkersVisible = state.showPins && isAreaVisible;
       const bob = Math.sin(elapsed * 2.3 + poiIndex * 0.8) * 0.05;
       poi.group.visible = isAreaVisible;
@@ -635,8 +643,13 @@ function updateOverviewState() {
     return;
   }
 
+  const visibleFloorInstances = floorInstances.filter(
+    (instance) => instance.floor.id === state.selectedFloorId,
+  );
+  const targetInstances = visibleFloorInstances.length > 0 ? visibleFloorInstances : floorInstances;
+
   overviewBounds.makeEmpty();
-  floorInstances.forEach((instance) => {
+  targetInstances.forEach((instance) => {
     const halfWidth = instance.width / 2;
     const halfDepth = instance.depth / 2;
     const floorY = instance.group.position.y;
