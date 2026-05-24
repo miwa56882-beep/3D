@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>文化祭 校内案内図 | WebGL</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <aside class="info-panel">
+        <div class="panel-glow" aria-hidden="true"></div>
+        <header class="hero">
+          <p class="eyebrow">Cultural Festival / 3D Campus Guide</p>
+          <h1>文化祭 校内案内図</h1>
+          <p class="hero-copy">
+            提供された平面図をもとに、各階を立体的に積層した案内サイトです。
+            WebGL を使って自由に回転・拡大しながら、見たいフロアや企画場所を確認できます。
+          </p>
+        </header>
+
+        <section class="panel-section" aria-labelledby="view-heading">
+          <div class="section-head">
+            <h2 id="view-heading">視点操作</h2>
+            <div class="section-actions">
+              <button id="topView" type="button" class="ghost-button">
+                真上から見る
+              </button>
+              <button id="resetView" type="button" class="ghost-button">
+                視点を戻す
+              </button>
+            </div>
+          </div>
+          <p class="section-note">
+            3D 上のフロアや教室の場所を直接クリックすると、その場所の案内を表示します。
+          </p>
+        </section>
+
+        <section class="panel-section" aria-labelledby="control-heading">
+          <h2 id="control-heading">表示設定</h2>
+          <div class="toggle-grid">
+            <label class="toggle-card">
+              <input id="explodeToggle" type="checkbox" checked />
+              <span>階を分離表示</span>
+              <small>各フロアを離して見やすく表示</small>
+            </label>
+            <label class="toggle-card">
+              <input id="pinsToggle" type="checkbox" checked />
+              <span>案内ピンを表示</span>
+              <small>受付・飲食・展示などを強調</small>
+            </label>
+            <label class="toggle-card">
+              <input id="labelsToggle" type="checkbox" checked />
+              <span>ラベルを表示</span>
+              <small>フロア名と案内名を常時表示</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel-section current-floor" aria-labelledby="current-heading">
+          <h2 id="current-heading">選択した場所</h2>
+          <div id="floorSummary" class="summary-card"></div>
+          <div id="poiList" class="poi-list" role="list"></div>
+        </section>
+
+        <section class="panel-section legend-section" aria-labelledby="legend-heading">
+          <h2 id="legend-heading">凡例</h2>
+          <div id="legend" class="legend"></div>
+          <p class="caption">
+            ドラッグで回転、ホイールで拡大縮小、地図上の教室や案内場所をクリックで説明を表示します。
+          </p>
+        </section>
+
+        <footer class="panel-footer">
+          OpenGL 系の Web 表示はブラウザ上では <strong>WebGL</strong> で実行しています。
+        </footer>
+      </aside>
+
+      <main class="scene-panel">
+        <div class="scene-toolbar">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>WebGL / Three.js (MIT)</span>
+          <span class="toolbar-divider" aria-hidden="true"></span>
+          <span id="selectionHint">1階を表示中</span>
+        </div>
+        <div id="canvasHost" class="canvas-host" aria-label="3D 校内案内図"></div>
+        <div id="hoverCard" class="hover-card is-hidden" role="status" aria-live="polite"></div>
+      </main>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.176.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.176.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
