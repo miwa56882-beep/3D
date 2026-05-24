@@ -155,11 +155,6 @@ body {
   font-weight: 700;
 }
 
-.toggle-card small {
-  color: var(--ink-soft);
-  line-height: 1.55;
-}
-
 .toggle-card input {
   margin: 0 0 0.3rem;
   accent-color: var(--accent-red);
