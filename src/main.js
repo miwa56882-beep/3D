@@ -12,10 +12,11 @@ const config = {
   floorGapExploded: 3.15,
   floorGapStacked: 1.28,
   slabThickness: 0.3,
-  initialCameraPosition: new THREE.Vector3(18, 14, 22),
-  overviewDirection: new THREE.Vector3(0.72, 0.58, 0.94).normalize(),
+  initialCameraPosition: new THREE.Vector3(0.01, 20, 0.01),
   overviewMarkerHeight: 1.95,
-  overviewPadding: 1.14,
+  overviewPadding: 1.28,
+  focusTopPadding: 1.18,
+  focusedFloorOffset: 3.6,
 };
 
 const dom = {
@@ -31,13 +32,13 @@ const dom = {
 };
 
 const state = {
-  selectedFloorId: FLOOR_DATA[0].id,
+  selectedFloorId: null,
   selectedPoiKey: null,
   hoveredInteractive: null,
   exploded: true,
   showPins: true,
   showLabels: true,
-  cameraMode: "focus",
+  cameraMode: "overview",
 };
 
 const scene = new THREE.Scene();
@@ -77,7 +78,6 @@ const overviewBounds = new THREE.Box3();
 const overviewCenter = new THREE.Vector3();
 const overviewSize = new THREE.Vector3();
 const overviewPosition = new THREE.Vector3();
-const overviewDirection = config.overviewDirection.clone();
 const tempPoint = new THREE.Vector3();
 const loader = new THREE.TextureLoader();
 const interactiveObjects = [];
@@ -108,7 +108,6 @@ async function init() {
 
     resize();
     resetView();
-    updateSidebar();
     renderer.setAnimationLoop(animate);
   } catch (error) {
     console.error(error);
@@ -441,7 +440,7 @@ function wireUi() {
 }
 
 function updateSidebar() {
-  const floor = getFloorById(state.selectedFloorId);
+  const floor = state.selectedFloorId ? getFloorById(state.selectedFloorId) : null;
   const activePoi = state.selectedPoiKey ? poiLookup.get(state.selectedPoiKey) : null;
 
   dom.floorButtons.querySelectorAll(".floor-button").forEach((button) => {
@@ -451,7 +450,7 @@ function updateSidebar() {
   dom.currentFloorPanel.hidden = !activePoi;
   dom.floorSummary.innerHTML = activePoi
     ? `
-      <span class="summary-pill">${floor.label}</span>
+      <span class="summary-pill">${floor?.label ?? ""}</span>
       <h3>${activePoi.point.label}</h3>
       <p>${activePoi.point.detail}</p>
     `
@@ -459,14 +458,16 @@ function updateSidebar() {
 
   dom.selectionHint.textContent = activePoi
     ? `${floor.label} / ${activePoi.point.label}`
-    : `${floor.label} を表示中`;
+    : floor
+      ? `${floor.label} を表示中`
+      : "全階を表示中";
 }
 
 function focusFloor(floorId) {
   state.selectedFloorId = floorId;
   state.selectedPoiKey = null;
+  state.cameraMode = "focus";
   updateSidebar();
-  resetView();
 }
 
 function focusPoi(floorId, poiId) {
@@ -477,36 +478,23 @@ function focusPoi(floorId, poiId) {
 }
 
 function resetView() {
-  state.cameraMode = "focus";
-  const activeFloor = floorInstances.find(
-    (instance) => instance.floor.id === state.selectedFloorId,
-  );
-  if (!activeFloor) {
-    return;
-  }
-
-  if (state.selectedPoiKey) {
-    const activePoi = poiLookup.get(state.selectedPoiKey);
-    activePoi.group.getWorldPosition(pointerWorld);
-    cameraTarget.copy(pointerWorld);
-  } else {
-    cameraTarget.set(0, activeFloor.group.position.y, 0);
-  }
-
-  const distance = Math.max(activeFloor.width, activeFloor.depth, 12) * 1.18;
-  sceneFocus.copy(cameraTarget);
-  controls.target.copy(cameraTarget);
-  camera.position.set(
-    cameraTarget.x + 0.01,
-    cameraTarget.y + distance,
-    cameraTarget.z + 0.01,
-  );
+  state.selectedFloorId = null;
+  state.selectedPoiKey = null;
+  state.cameraMode = "overview";
+  updateSidebar();
+  updateOverviewState();
+  camera.position.copy(overviewPosition);
+  controls.target.copy(overviewCenter);
+  sceneFocus.copy(overviewCenter);
+  cameraTarget.copy(overviewCenter);
   controls.update();
 }
 
 function animate(time) {
   const delta = Math.min(clock.getDelta(), 0.05);
   const elapsed = clock.elapsedTime;
+  const focusLayerY =
+    (floorInstances.length - 1) * config.floorGapExploded + config.focusedFloorOffset;
   const hoveredPoiKey =
     state.hoveredInteractive?.userData.kind === "poi"
       ? buildPoiKey(
@@ -516,7 +504,9 @@ function animate(time) {
       : null;
 
   floorInstances.forEach((instance) => {
-    const targetY = instance.index * (state.exploded ? config.floorGapExploded : config.floorGapStacked);
+    const baseY = instance.index * (state.exploded ? config.floorGapExploded : config.floorGapStacked);
+    const isFocusedFloor = state.selectedFloorId === instance.floor.id;
+    const targetY = isFocusedFloor ? focusLayerY : baseY;
     instance.group.position.y = THREE.MathUtils.damp(
       instance.group.position.y,
       targetY,
@@ -524,28 +514,31 @@ function animate(time) {
       delta,
     );
 
-    const isActiveFloor = state.selectedFloorId === instance.floor.id;
-    instance.group.visible = isActiveFloor;
-    if (!isActiveFloor) {
-      return;
-    }
+    instance.group.visible = true;
 
-    const emphasisTarget = 1;
+    const emphasisTarget = state.selectedFloorId
+      ? isFocusedFloor
+        ? 1
+        : 0.58
+      : 0.82;
     instance.emphasis = THREE.MathUtils.damp(instance.emphasis, emphasisTarget, 7.5, delta);
 
-    instance.materials.top.opacity = 0.48 + instance.emphasis * 0.52;
-    instance.materials.side.opacity = 0.52 + instance.emphasis * 0.44;
-    instance.materials.bottom.opacity = 0.44 + instance.emphasis * 0.32;
-    instance.edge.material.opacity = 0.16 + instance.emphasis * 0.24;
-    instance.glow.material.opacity = 0.04 + instance.emphasis * 0.12;
-    instance.label.visible = state.showLabels;
-    instance.labelElement.classList.remove("is-muted");
+    instance.materials.top.opacity = 0.34 + instance.emphasis * 0.66;
+    instance.materials.side.opacity = 0.32 + instance.emphasis * 0.58;
+    instance.materials.bottom.opacity = 0.28 + instance.emphasis * 0.48;
+    instance.edge.material.opacity = 0.1 + instance.emphasis * 0.3;
+    instance.glow.material.opacity = 0.02 + instance.emphasis * 0.14;
+    instance.label.visible = state.showLabels && (!state.selectedFloorId || isFocusedFloor);
+    instance.labelElement.classList.toggle(
+      "is-muted",
+      Boolean(state.selectedFloorId) && !isFocusedFloor,
+    );
 
     instance.pois.forEach((poi, poiIndex) => {
       const key = buildPoiKey(instance.floor.id, poi.point.id);
       const isSelected = state.selectedPoiKey === key;
       const isHovered = hoveredPoiKey === key;
-      const isAreaVisible = true;
+      const isAreaVisible = !state.selectedFloorId || isFocusedFloor;
       const areMarkersVisible = state.showPins && isAreaVisible;
       const bob = Math.sin(elapsed * 2.3 + poiIndex * 0.8) * 0.05;
       poi.group.visible = isAreaVisible;
@@ -569,28 +562,14 @@ function animate(time) {
     });
   });
 
-  updateFocusTarget(delta);
+  if (state.cameraMode === "overview") {
+    updateOverviewCamera(delta);
+  } else {
+    updateFocusCamera(delta);
+  }
   controls.update();
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
-}
-
-function updateFocusTarget(delta) {
-  if (state.selectedPoiKey) {
-    const activePoi = poiLookup.get(state.selectedPoiKey);
-    activePoi.group.getWorldPosition(pointerWorld);
-    cameraTarget.set(pointerWorld.x, pointerWorld.y - 0.2, pointerWorld.z);
-  } else {
-    const activeFloor = floorInstances.find(
-      (instance) => instance.floor.id === state.selectedFloorId,
-    );
-    cameraTarget.set(0, activeFloor ? activeFloor.group.position.y : 0, 0);
-  }
-
-  sceneFocus.x = THREE.MathUtils.damp(sceneFocus.x, cameraTarget.x, 5.5, delta);
-  sceneFocus.y = THREE.MathUtils.damp(sceneFocus.y, cameraTarget.y, 5.5, delta);
-  sceneFocus.z = THREE.MathUtils.damp(sceneFocus.z, cameraTarget.z, 5.5, delta);
-  controls.target.copy(sceneFocus);
 }
 
 function updateOverviewState() {
@@ -600,13 +579,8 @@ function updateOverviewState() {
     return;
   }
 
-  const visibleFloorInstances = floorInstances.filter(
-    (instance) => instance.floor.id === state.selectedFloorId,
-  );
-  const targetInstances = visibleFloorInstances.length > 0 ? visibleFloorInstances : floorInstances;
-
   overviewBounds.makeEmpty();
-  targetInstances.forEach((instance) => {
+  floorInstances.forEach((instance) => {
     const halfWidth = instance.width / 2;
     const halfDepth = instance.depth / 2;
     const floorY = instance.group.position.y;
@@ -629,20 +603,60 @@ function updateOverviewState() {
   overviewBounds.getCenter(overviewCenter);
   overviewBounds.getSize(overviewSize);
 
-  const halfVerticalFov = THREE.MathUtils.degToRad(camera.fov * 0.5);
-  const halfHorizontalFov = Math.atan(
-    Math.tan(halfVerticalFov) * camera.aspect,
-  );
-  const fitHalfAngle = Math.min(halfVerticalFov, halfHorizontalFov);
-  const radius = overviewSize.length() * 0.5;
   const distance =
-    Math.max(radius / Math.sin(fitHalfAngle), controls.minDistance) *
-    config.overviewPadding;
+    Math.max(overviewSize.x, overviewSize.z, 12) * config.overviewPadding +
+    overviewSize.y * 0.35;
 
-  overviewPosition.copy(overviewCenter).addScaledVector(
-    overviewDirection,
-    distance,
+  overviewPosition.set(
+    overviewCenter.x + 0.01,
+    overviewCenter.y + distance,
+    overviewCenter.z + 0.01,
   );
+}
+
+function updateOverviewCamera(delta) {
+  updateOverviewState();
+  camera.position.x = THREE.MathUtils.damp(camera.position.x, overviewPosition.x, 4.6, delta);
+  camera.position.y = THREE.MathUtils.damp(camera.position.y, overviewPosition.y, 4.6, delta);
+  camera.position.z = THREE.MathUtils.damp(camera.position.z, overviewPosition.z, 4.6, delta);
+  sceneFocus.x = THREE.MathUtils.damp(sceneFocus.x, overviewCenter.x, 4.6, delta);
+  sceneFocus.y = THREE.MathUtils.damp(sceneFocus.y, overviewCenter.y, 4.6, delta);
+  sceneFocus.z = THREE.MathUtils.damp(sceneFocus.z, overviewCenter.z, 4.6, delta);
+  cameraTarget.copy(overviewCenter);
+  controls.target.copy(sceneFocus);
+}
+
+function updateFocusCamera(delta) {
+  const activeFloor = floorInstances.find(
+    (instance) => instance.floor.id === state.selectedFloorId,
+  );
+  if (!activeFloor) {
+    updateOverviewCamera(delta);
+    return;
+  }
+
+  if (state.selectedPoiKey) {
+    const activePoi = poiLookup.get(state.selectedPoiKey);
+    activePoi.group.getWorldPosition(pointerWorld);
+    cameraTarget.copy(pointerWorld);
+  } else {
+    cameraTarget.set(
+      activeFloor.group.position.x,
+      activeFloor.group.position.y,
+      activeFloor.group.position.z,
+    );
+  }
+
+  const distance = Math.max(activeFloor.width, activeFloor.depth, 12) * config.focusTopPadding;
+  const focusPositionY = cameraTarget.y + distance;
+
+  camera.position.x = THREE.MathUtils.damp(camera.position.x, cameraTarget.x + 0.01, 4.9, delta);
+  camera.position.y = THREE.MathUtils.damp(camera.position.y, focusPositionY, 4.9, delta);
+  camera.position.z = THREE.MathUtils.damp(camera.position.z, cameraTarget.z + 0.01, 4.9, delta);
+  sceneFocus.x = THREE.MathUtils.damp(sceneFocus.x, cameraTarget.x, 5.5, delta);
+  sceneFocus.y = THREE.MathUtils.damp(sceneFocus.y, cameraTarget.y, 5.5, delta);
+  sceneFocus.z = THREE.MathUtils.damp(sceneFocus.z, cameraTarget.z, 5.5, delta);
+  controls.target.copy(sceneFocus);
 }
 
 function handlePointerMove(event) {
